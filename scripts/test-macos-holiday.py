@@ -10,7 +10,7 @@ with tempfile.TemporaryDirectory() as folder:
     types = "import Foundation\nimport CoreGraphics\nimport simd\n"
     for filename, name in [("SnowSimulation.swift", "Sprite"), ("WindowTracker.swift", "WindowSurface")]:
         source = (root / "Sources/Snowhush" / filename).read_text(encoding="utf-8")
-        match = re.search(rf"(?ms)^struct {name} \{{.*?^\}}", source)
+        match = re.search(rf"(?ms)^struct {name}[^{{]*\{{.*?^\}}", source)
         assert match, f"Missing native type {name}"
         types += match[0] + "\n"
     (folder / "Types.swift").write_text(types, encoding="utf-8")
