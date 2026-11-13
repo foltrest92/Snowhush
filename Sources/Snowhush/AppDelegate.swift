@@ -148,7 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
         menu.delegate = self
         menu.autoenablesItems = false
 
-        menu.addItem(.sectionHeader(title: tr("intensity")))
+        menu.addItem(Self.sectionHeader(tr("intensity")))
         intensitySlider.changed = { [unowned self] in select(intensity: $0) }
         let intensityItem = NSMenuItem()
         intensityItem.view = intensitySlider
@@ -202,17 +202,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
         menu.addItem(.separator())
         let settings = NSMenu()
         settings.autoenablesItems = false
-        settings.addItem(.sectionHeader(title: tr("behavior")))
+        settings.addItem(Self.sectionHeader(tr("behavior")))
         meltItem = toggle(tr("melt.snow"), #selector(toggleMeltSnow), to: settings)
         deepInteractionItem = toggle(tr("deep"), #selector(toggleDeepInteraction), to: settings)
         settings.addItem(.separator())
-        settings.addItem(.sectionHeader(title: tr("display")))
+        settings.addItem(Self.sectionHeader(tr("display")))
         behindWindowsItem = toggle(tr("behind"), #selector(toggleBehindWindows), to: settings)
         fullScreenItem = toggle(tr("full_screen"), #selector(toggleFullScreen), to: settings)
         screenshotsItem = toggle(tr("screenshots"), #selector(toggleScreenshots), to: settings)
         maxPerformanceItem = toggle(tr("performance"), #selector(toggleMaxPerformance), to: settings)
         settings.addItem(.separator())
-        settings.addItem(.sectionHeader(title: tr("general")))
+        settings.addItem(Self.sectionHeader(tr("general")))
         loginItem = toggle(tr("login"), #selector(toggleOpenAtLogin), to: settings)
         let updates = settings.addItem(withTitle: tr("updates"), action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
         updates.target = updater
@@ -245,6 +245,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
     private func add(_ title: String, _ action: Selector, to menu: NSMenu) -> NSMenuItem {
         let item = menu.addItem(withTitle: title, action: action, keyEquivalent: "")
         item.target = self
+        return item
+    }
+
+    private static func sectionHeader(_ title: String) -> NSMenuItem {
+        if #available(macOS 14, *) { return .sectionHeader(title: title) }
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(string: title, attributes: [
+            .font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ])
         return item
     }
 

@@ -28,6 +28,8 @@ jobs:
           xcrun -sdk macosx metal -c /tmp/snowhush.metal -o /tmp/snowhush.air
       - name: Build universal app (Apple Silicon and Intel)
         run: zsh build.sh
+      - name: Check macOS 13.5 and Apple Silicon compatibility
+        run: python3 scripts/check-macos-bundle.py build/Snowhush.app
       - name: Package downloads
         run: |
           mkdir -p dist

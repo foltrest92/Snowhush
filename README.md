@@ -15,7 +15,7 @@
   &nbsp;·&nbsp;
   <a href="https://snowhush.app"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/readme/link-dark.svg"><img src=".github/readme/link-light.svg" width="20" height="16" align="absmiddle" alt=""></picture>snowhush.app</a>
   <br>
-  <sub>macOS 14 or later · Windows 10 or 11 · Linux with KDE Plasma 6, Hyprland, Sway or niri · free, source available</sub>
+  <sub>macOS 13 or later · Windows 10 or 11 · Linux with KDE Plasma 6, Hyprland, Sway or niri · free, source available</sub>
 </p>
 
 https://github.com/user-attachments/assets/291c3cd5-3563-4b86-8b66-dfd924f980fc
