@@ -63,3 +63,8 @@
 "setup.open" = "打开 Snowhush";
 "setup.failed" = "无法安装：{error}。";
 "setup.retry" = "重试";
+
+"snowplow" = "启动扫雪车";
+"snowman_hint" = "雪人：按住 Ctrl + Alt 滚动三个雪球";
+"garlands" = "圣诞彩灯";
+"snowman_hint.mac" = "雪人：按住 Control + Option 滚动三个雪球";

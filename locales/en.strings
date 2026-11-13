@@ -71,3 +71,8 @@
 "setup.open" = "Open Snowhush";
 "setup.failed" = "Couldn't install: {error}.";
 "setup.retry" = "Try Again";
+
+"snowplow" = "Clear with snowplow";
+"snowman_hint" = "Snowman: hold Ctrl + Alt and roll three snowballs";
+"garlands" = "Christmas lights";
+"snowman_hint.mac" = "Snowman: hold Control + Option and roll three snowballs";

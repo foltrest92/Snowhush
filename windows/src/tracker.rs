@@ -302,6 +302,14 @@ impl Tracker {
     /// area in physical pixels, `size` the overlay's size in DIPs. Windows whose snow lies on another display only hide
     /// snow here.
     pub fn surfaces(&self, name: &str, area: &RECT, size: (u32, u32)) -> Vec<WindowSurface> {
+        self.window_surfaces(name, area, size, false)
+    }
+
+    pub fn garland_surfaces(&self, name: &str, area: &RECT, size: (u32, u32)) -> Vec<WindowSurface> {
+        self.window_surfaces(name, area, size, true)
+    }
+
+    fn window_surfaces(&self, name: &str, area: &RECT, size: (u32, u32), decorations: bool) -> Vec<WindowSurface> {
         let (width, height) = (size.0 as f32, size.1 as f32);
         let sy = height / (area.bottom - area.top).max(1) as f32;
         let mut blockers: Vec<Rect> = Vec::new();
@@ -325,7 +333,14 @@ impl Tracker {
             let room_above = ((r.top - area.top) as f32 * sy >= 6.0 && frame.max_y() < height) || self.below_display(name, r, sy);
             let on_screen = frame.max_x() > 0.0 && frame.min_x() < width && frame.max_y() > 0.0;
             let here = self.owners.get(&window.id).is_none_or(|owner| owner == name);
-            if here && room_above && on_screen && !fills_screen && !window.cover_only && frame.width >= 80.0 && frame.height >= 40.0 {
+            if here
+                && (room_above || decorations)
+                && on_screen
+                && (!fills_screen || decorations)
+                && !window.cover_only
+                && frame.width >= 80.0
+                && frame.height >= 40.0
+            {
                 let radius = window.radius.min(frame.width / 2.0).min(frame.height / 2.0);
                 let region = Rect { x: frame.x, y: frame.max_y() - radius, width: frame.width, height: 40.0 + radius };
                 surfaces.push(WindowSurface {
@@ -345,6 +360,7 @@ impl Tracker {
         // The rubber band lies on the desktop, behind every window, and hides nothing: it is see-through. However thin,
         // its top edge holds snow, as wide as the simulation keeps a ledge.
         if let Some(frame) = self.marquee.rect.as_ref().and_then(|rect| local_frame(rect, area, size))
+            && !decorations
             && frame.width >= 8.0 * COLUMN_WIDTH
             && frame.max_y() < height
         {

@@ -63,3 +63,8 @@
 "setup.open" = "Abrir Snowhush";
 "setup.failed" = "No se pudo instalar: {error}.";
 "setup.retry" = "Reintentar";
+
+"snowplow" = "Limpiar con quitanieves";
+"snowman_hint" = "Muñeco: Ctrl + Alt y rueda tres bolas de nieve";
+"garlands" = "Luces navideñas";
+"snowman_hint.mac" = "Muñeco: Control + Option y rueda tres bolas";

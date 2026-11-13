@@ -357,6 +357,13 @@ private struct RandomSource {
 }
 
 final class SnowSimulation {
+    let holiday = HolidayScene()
+
+    func startSnowplow() {
+        guard modes.contains(.snow), gust == nil else { return }
+        holiday.startPlow(layers: layers)
+        stirred()
+    }
     let columnWidth: Float = 2
     private(set) var width: Float
     private(set) var height: Float
@@ -681,7 +688,7 @@ final class SnowSimulation {
     var hasSnow: Bool { !lying.isEmpty || layers.contains { $0.top > 0.5 } }
     /// Nothing falls, lies, waits for its window or haunts, and nothing will until the snow is stirred.
     var isEmpty: Bool {
-        intensity <= 0 && !halloween && flakes.isEmpty && grains.isEmpty && motes.isEmpty && ghosts.isEmpty
+        holiday.count == 0 && intensity <= 0 && !halloween && flakes.isEmpty && grains.isEmpty && motes.isEmpty && ghosts.isEmpty
             && fallingSigns.isEmpty && snowballs.isEmpty && gust == nil && dormant.isEmpty && parking.isEmpty && lying.isEmpty && nextMode == nil
             && splashes.isEmpty && glassDrops.isEmpty && !wet
             && !layers.contains { $0.top > 0 }
@@ -689,7 +696,7 @@ final class SnowSimulation {
     /// Running drops or beads on the glass, drawn from a field of their own.
     var hasGlassDrops: Bool { glassDrops.contains { !$0.hanging } }
     var spriteCount: Int {
-        lying.count + flakes.count + grains.count + motes.count + ghosts.count * 2 + snowballs.count + splashes.count + glassDrops.count
+        holiday.count + lying.count + flakes.count + grains.count + motes.count + ghosts.count * 2 + snowballs.count + splashes.count + glassDrops.count
             + ledgeList.reduce(0) { $0 + $1.spray.count + $1.film.count }
     }
     /// Floats the renderer needs per frame: each layer's surface, bed and what it is made of.
@@ -715,7 +722,9 @@ final class SnowSimulation {
         slideWind = abs(slideWind) < 1 ? 0 : slideWind * exp(-dt / slideCalm)
         expireParking()
         for ledge in ledgeList { carry(ledge, dt: dt) }
-        trackCursor(point, dt: dt)
+        holiday.step(dt: dt, cursor: point, layers: layers, snow: modes.contains(.snow) && gust == nil,
+                     groundSettles: groundSettles, width: width, height: height, time: Float(clock))
+        trackCursor(holiday.interactive ? SIMD2(-10_000, -10_000) : point, dt: dt)
         for ledge in ledgeList where !ledge.carried { confine(ledge) }
         blow(dt: dt)
         skim(dt: dt)
@@ -744,7 +753,7 @@ final class SnowSimulation {
         let pushed = clock - lastWindowMotion < 0.6 || clock - lastCursorPush < 0.3 || gust != nil || !snowballs.isEmpty || clock - hitAt < 0.6
         // The steady trickle off window corners is a few tiny grains at a time; they read fine at the calm rate.
         let flying = grains.count > 24 || clock < scatteredUntil || abs(slideWind) > 20
-        if pushed {
+        if pushed || holiday.interactive {
             pace = .interactive
         } else if flying {
             pace = .lively
@@ -757,7 +766,7 @@ final class SnowSimulation {
         windowsChanged = false
         borrowedChanged = false
         pumpkinsMoved = false
-        return changed
+        return changed || holiday.count > 0
     }
 
     func writeSprites(into buffer: UnsafeMutablePointer<Sprite>, capacity: Int) -> Int {
@@ -935,6 +944,10 @@ final class SnowSimulation {
             let t = min(ball.age / 0.5, 1)
             let position = ball.from + (ball.to - ball.from) * (1 - pow(1 - t, 2)) + SIMD2(0, sin(t * .pi) * 60)
             buffer[count] = Sprite(position: position, size: 7 + 145 * t * t, alpha: 1, soft: 0.12)
+            count += 1
+        }
+        for sprite in holiday.sprites where count < capacity {
+            buffer[count] = sprite
             count += 1
         }
         return count
@@ -3166,6 +3179,7 @@ final class SnowSimulation {
     /// Clears all the snow: a gust in `direction` lifts it off the ground and the windows and blows it off the screen,
     /// or, `calm`, it melts away where it lies.
     func blowAway(direction: Float, calm: Bool) {
+        holiday.clearSnow()
         gust = (clock, direction < 0 ? -1 : 1, calm)
         // Snow kept for windows on other Spaces goes too, out of sight.
         dormant.removeAll()

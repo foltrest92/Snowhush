@@ -1,3 +1,4 @@
+import AppKit
 import MetalKit
 import QuartzCore
 
@@ -210,6 +211,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         }
         simulation.setBorrowed(borrowedSnow())
         let cursor = cursorLocation()
+        simulation.holiday.sculpting = NSEvent.modifierFlags.contains([.control, .option])
         let changed = simulation.step(dt: dt, cursor: cursor)
         stepped()
         // The frame shown last stays up, as it would anyway with nothing to draw, without ticking over in vain.

@@ -43,6 +43,7 @@ pub enum Command {
     Ground(bool),
     Melt(bool),
     SnowOnWindows(bool),
+    Garlands(bool),
     BehindWindows(bool),
     OverFullScreen(bool),
     /// Every frame at the display's highest rate, or as fast as what moves needs.
@@ -60,6 +61,7 @@ pub enum Command {
     ReleaseSnowfall,
     /// Blows all the snow away; when calm, for less motion, melts it where it lies instead.
     ClearSnow(bool),
+    Snowplow,
     /// Halloween turned on or off from the menu.
     Halloween(Choice),
     /// Other kinds fall, once a gust has blown what is there away; when calm, for less motion, it melts where it
@@ -160,6 +162,14 @@ fn run_loop(commands: &Receiver<Command>, links: &Links, mut settings: Settings)
                         screens.iter_mut().for_each(Screen::drop_window_snow);
                     }
                 }
+                Command::Garlands(on) => {
+                    settings.garlands = on;
+                    let now = Clock::now();
+                    screens.iter_mut().for_each(|screen| {
+                        screen.simulation.set_garlands(on);
+                        screen.wake(now);
+                    });
+                }
                 Command::BehindWindows(on) => {
                     settings.behind_windows = on;
                     layer = on.then(find_layer).flatten();
@@ -214,6 +224,13 @@ fn run_loop(commands: &Receiver<Command>, links: &Links, mut settings: Settings)
                 Command::ClearSnow(calm) => {
                     let direction = screens.first().map_or(-1.0, |screen| screen.simulation.breeze_direction());
                     screens.iter_mut().for_each(|screen| screen.simulation.blow_away(direction, calm));
+                }
+                Command::Snowplow => {
+                    let now = Clock::now();
+                    screens.iter_mut().for_each(|screen| {
+                        screen.simulation.start_snowplow();
+                        screen.wake(now);
+                    });
                 }
                 Command::Halloween(choice) => {
                     settings.halloween = choice;
@@ -353,6 +370,13 @@ fn run_loop(commands: &Receiver<Command>, links: &Links, mut settings: Settings)
             let mut released = false;
             let mut reshaped = false;
             for screen in screens.iter_mut().filter(|screen| screen.next_due <= now + clock.tolerance()) {
+                if settings.garlands {
+                    screen.simulation.set_garland_windows(&tracker.garland_surfaces(
+                        &screen.monitor.name,
+                        &screen.monitor.rect,
+                        dip_size(&screen.monitor),
+                    ));
+                }
                 let in_front = tracker.covering(&screen.monitor.bounds);
                 // Shown over a full-screen app, the snow reaches down to the bottom of the display while the app has put
                 // the taskbar away, so the drift lies along the bottom instead of over a taskbar no longer there; a
@@ -613,6 +637,7 @@ fn new_simulation(monitor: &Monitor, settings: &Settings) -> SnowSimulation {
     let (width, height) = dip_size(monitor);
     let mut simulation = SnowSimulation::new(width as f32, height as f32, settings.intensity as f32 / 100.0);
     simulation.thaws = settings.melt;
+    simulation.set_garlands(settings.garlands);
     simulation.accumulates = settings.accumulates();
     simulation.ground_settles = settings.ground;
     simulation.falling_opacity = settings.opacity as f32 / 100.0;

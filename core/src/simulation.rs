@@ -7,10 +7,12 @@ use std::ops::Range;
 use crate::geometry::{Rect, V2, smoothstep};
 use crate::layer::{Blend, SnowLayer};
 
+mod garlands;
 mod ghosts;
 mod neighbours;
 mod pumpkins;
 mod rain;
+mod winter;
 
 use ghosts::Haunting;
 pub use neighbours::{Borrowed, Carried, Caught, Mapping, Stray};
@@ -471,6 +473,8 @@ pub struct SnowSimulation {
     rain: Rain,
     switched_at: f64,
     restyled: bool,
+    winter: winter::Winter,
+    garlands: garlands::Garlands,
     air: Air,
 }
 
@@ -514,6 +518,8 @@ impl SnowSimulation {
             rain: Rain::default(),
             switched_at: 0.0,
             restyled: false,
+            winter: winter::Winter::default(),
+            garlands: garlands::Garlands::default(),
             air: Air {
                 flakes: Vec::new(),
                 grains: Vec::new(),
@@ -631,6 +637,9 @@ impl SnowSimulation {
     /// falls now turns into the new kinds where it is.
     pub fn set_modes(&mut self, modes: &[Mode]) {
         let modes = normalized(modes);
+        if !modes.contains(&Mode::Snow) {
+            self.winter = winter::Winter::default();
+        }
         if modes == self.air.modes {
             return;
         }
@@ -694,7 +703,9 @@ impl SnowSimulation {
     }
 
     pub fn sprite_count(&self) -> usize {
-        self.lying.len()
+        self.winter_sprite_count()
+            + self.garland_sprite_count()
+            + self.lying.len()
             + self.air.flakes.len()
             + self.air.grains.len()
             + self.air.motes.len()
@@ -775,6 +786,7 @@ impl SnowSimulation {
         self.air.clock += dt as f64;
         let was_moving = self.sprite_count() > 0;
         self.air.heights_changed = false;
+        self.step_winter(dt);
 
         self.release_scattered();
         let wind = self.air.slide_wind;
@@ -784,7 +796,7 @@ impl SnowSimulation {
         for ledge in &mut self.layers[1..] {
             self.air.carry(ledge, dt);
         }
-        self.track_cursor(cursor, dt);
+        self.track_cursor(if self.winter.rolling.is_some() { V2::new(-10_000.0, -10_000.0) } else { cursor }, dt);
         for (li, ledge) in self.layers.iter_mut().enumerate().skip(1) {
             self.air.confine(ledge, li, self.width, self.walls);
         }
@@ -825,7 +837,9 @@ impl SnowSimulation {
         let pushed = air.clock - air.last_window_motion < 0.6
             || air.clock - air.last_cursor_push < 0.3
             || air.gust.is_some()
-            || self.haunting.pushing(air.clock);
+            || self.haunting.pushing(air.clock)
+            || self.winter.plow.is_some()
+            || self.winter.rolling.is_some();
         // The steady trickle off window corners is a few tiny grains at a time; they read fine at the calm rate.
         let flying = air.grains.len() > 24 || air.clock < self.scattered_until || air.slide_wind.abs() > 20.0;
         self.pace = if pushed {
@@ -955,7 +969,10 @@ impl SnowSimulation {
             }
         });
         let mut count = 0;
-        for (slot, sprite) in buffer.iter_mut().zip(lying.chain(flakes).chain(self.rain_sprites()).chain(grains).chain(motes)) {
+        for (slot, sprite) in buffer
+            .iter_mut()
+            .zip(lying.chain(flakes).chain(self.rain_sprites()).chain(grains).chain(motes).chain(self.winter_sprites()).chain(self.garland_sprites()))
+        {
             *slot = sprite;
             count += 1;
         }
@@ -1521,6 +1538,7 @@ impl SnowSimulation {
     /// Clears all the snow: a gust in `direction` lifts it off the ground and the windows and blows it off the screen,
     /// or, `calm`, it melts away where it lies.
     pub fn blow_away(&mut self, direction: f32, calm: bool) {
+        self.winter = winter::Winter::default();
         let direction = if direction < 0.0 { -1.0 } else { 1.0 };
         self.air.gust = Some(Gust { start: self.air.clock, direction, calm });
         // Snow kept for windows on other desktops goes too, out of sight.

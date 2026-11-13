@@ -39,6 +39,10 @@ enum Preferences {
     private static let autumnKey = "autumn"
     private static let performanceKey = "performance"
     private static let fallingOpacityKey = "fallingOpacity"
+    static var garlands: Bool {
+        get { defaults.object(forKey: "garlands") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "garlands") }
+    }
 
     static func registerDefaults() {
         let calm = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion

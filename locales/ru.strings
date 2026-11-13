@@ -63,3 +63,8 @@
 "setup.open" = "Открыть Snowhush";
 "setup.failed" = "Не удалось установить: {error}.";
 "setup.retry" = "Повторить";
+
+"snowplow" = "Расчистить снегоуборщиком";
+"snowman_hint" = "Снеговик: Ctrl + Alt — катайте три снежка";
+"garlands" = "Новогодние гирлянды";
+"snowman_hint.mac" = "Снеговик: Control + Option — катайте три снежка";

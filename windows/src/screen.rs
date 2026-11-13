@@ -16,6 +16,7 @@ use windows::Win32::System::Performance::{QueryPerformanceCounter, QueryPerforma
 use windows::Win32::System::Threading::SetEvent;
 use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook};
 use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_MENU};
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{BOOL, Error, PCWSTR, Result, w};
 
@@ -312,6 +313,8 @@ impl Screen {
             self.follow(tracker, clock, now);
         }
         let cursor = self.cursor();
+        let sculpting = unsafe { GetAsyncKeyState(VK_CONTROL.0 as i32) < 0 && GetAsyncKeyState(VK_MENU.0 as i32) < 0 };
+        self.simulation.sculpt_snow(cursor, sculpting);
         let changed = self.simulation.step(dt, cursor);
         // Nothing to draw and nothing on its way: the frame shown last stays up, as it would, till the snow is stirred.
         if !changed && self.simulation.is_empty() {

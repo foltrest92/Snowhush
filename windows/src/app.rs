@@ -48,6 +48,8 @@ const ID_BEHIND: u32 = 205;
 const ID_QUIT: u32 = 299;
 const ID_UPDATES: u32 = 206;
 const ID_CLEAR: u32 = 207;
+const ID_SNOWPLOW: u32 = 222;
+const ID_GARLANDS: u32 = 223;
 const ID_HALLOWEEN: u32 = 208;
 const ID_TASKBAR: u32 = 209;
 const ID_SNOW: u32 = 210;
@@ -439,6 +441,11 @@ fn entries(settings: &Settings, login: bool, sliders: bool) -> Vec<Entry> {
     };
     entries.extend(accumulate(settings, !heaps.is_empty(), sliders));
     entries.push(Entry::Submenu { label: tr("mode").to_string(), entries: modes });
+    entries.push(Entry::toggle(ID_GARLANDS, tr("garlands"), settings.garlands, true));
+    if falling.contains(&Mode::Snow) {
+        entries.push(Entry::item(ID_SNOWPLOW, tr("snowplow"), false, true));
+        entries.push(Entry::item(0, tr("snowman_hint"), false, false));
+    }
     if !heaps.is_empty() {
         entries.push(Entry::item(ID_CLEAR, text::kinds("clear", &heaps), false, true));
     }
@@ -534,6 +541,11 @@ fn choose(window: HWND, chosen: u32, login: bool) {
         ID_QUIT => quit(window),
         ID_UPDATES => check_for_updates(window, true),
         ID_SPONSOR => update::open(SPONSORS),
+        ID_SNOWPLOW => APP.with_borrow(|app| {
+            if let Some(app) = app {
+                send(app, Command::Snowplow);
+            }
+        }),
         ID_CLEAR => APP.with_borrow(|app| {
             if let Some(app) = app {
                 send(app, Command::ClearSnow(!prefs::animations_enabled()));
@@ -592,6 +604,10 @@ fn choose(window: HWND, chosen: u32, login: bool) {
                 ID_WINDOWS => {
                     settings.snow_on_windows = !settings.snow_on_windows;
                     Command::SnowOnWindows(settings.snow_on_windows)
+                }
+                ID_GARLANDS => {
+                    settings.garlands = !settings.garlands;
+                    Command::Garlands(settings.garlands)
                 }
                 ID_BEHIND => {
                     settings.behind_windows = !settings.behind_windows;

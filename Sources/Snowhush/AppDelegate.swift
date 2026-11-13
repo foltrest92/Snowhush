@@ -24,6 +24,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
     private let surfacePicker = SurfacePicker()
     private var meltItem: NSMenuItem!
     private var clearItem: NSMenuItem!
+    private var garlandsItem: NSMenuItem!
+    private var snowplowItem: NSMenuItem!
+    private var snowmanHintItem: NSMenuItem!
     private var halloweenItem: NSMenuItem!
     private var mixedItem: NSMenuItem!
     private var modeItems: [(item: NSMenuItem, mode: Mode)] = []
@@ -192,6 +195,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
         halloweenItem = add(tr("halloween"), #selector(toggleHalloween), to: modes)
         menu.addItem(withTitle: tr("mode"), action: nil, keyEquivalent: "").submenu = modes
         clearItem = add(tr("clear.snow"), #selector(clearSnow), to: menu)
+        snowplowItem = add(tr("snowplow"), #selector(startSnowplow), to: menu)
+        garlandsItem = toggle(tr("garlands"), #selector(toggleGarlands), to: menu)
+        snowmanHintItem = menu.addItem(withTitle: tr("snowman_hint.mac"), action: nil, keyEquivalent: "")
+        snowmanHintItem.isEnabled = false
         menu.addItem(.separator())
         let settings = NSMenu()
         settings.autoenablesItems = false
@@ -261,6 +268,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
         let heaps = modes.filter { $0 != .rain }
         meltItem.isHidden = heaps.isEmpty
         clearItem.isHidden = heaps.isEmpty
+        snowplowItem.isHidden = !modes.contains(.snow)
+        snowmanHintItem.isHidden = !modes.contains(.snow)
+        garlandsItem.state = Preferences.garlands ? .on : .off
         meltItem.title = tr(heaps.contains(.snow) ? "melt.snow" : heaps == [.blossom] ? "melt.blossom" : "melt.autumn")
         clearItem.title = tr("clear", heaps)
         (meltItem.view as? MenuToggle)?.fit(meltItem.title)
@@ -324,6 +334,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
         let direction = screens.first?.simulation.breezeDirection ?? -1
         let calm = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         for snow in screens { snow.simulation.blowAway(direction: direction, calm: calm) }
+    }
+
+    @objc private func startSnowplow() {
+        screens.forEach { $0.simulation.startSnowplow() }
+    }
+
+    @objc private func toggleGarlands() {
+        Preferences.garlands.toggle()
+        for snow in screens {
+            snow.simulation.holiday.garlands = Preferences.garlands
+            snow.simulation.stirred()
+        }
     }
 
     @objc private func toggleBehindWindows() {

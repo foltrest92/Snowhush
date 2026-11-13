@@ -98,6 +98,7 @@ final class ScreenSnow {
             intensity: Float(Preferences.intensity)
         )
         simulation.thaws = Preferences.meltSnow
+        simulation.holiday.garlands = Preferences.garlands
         let settled = Preferences.surfaces
         simulation.accumulates = !settled.isEmpty
         simulation.groundSettles = settled.contains(.ground)
@@ -134,9 +135,10 @@ final class ScreenSnow {
             // Behind the windows the snow still settles on them: what lies on a window's top edge is above it, in
             // plain view.
             let settled = surfaces()
-            let tracked = !settled.isDisjoint(with: .tracked)
+            let tracked = !settled.isDisjoint(with: .tracked) || Preferences.garlands
             tracker.collects = settled.intersection(.tracked)
             let update = tracked ? tracker.poll(now: now, eager: NSEvent.pressedMouseButtons != 0) : nil
+            simulation.holiday.windows = tracker.garlandSurfaces
             window.notificationLevel = tracked ? tracker.notificationLevel : nil
             watchForFullScreen(now: now, tracked: tracked)
             guard tracked else { return nil }

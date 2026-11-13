@@ -60,6 +60,7 @@ final class WindowTracker {
     private let displays: Displays
     /// What collects snow: the Dock, desktop widgets and windows. The others still hide the snow behind them.
     var collects: Surfaces = .tracked
+    private(set) var garlandSurfaces: [WindowSurface] = []
 
     private var currentSpace: UInt64?
     private var currentSpaceRead = false
@@ -509,6 +510,7 @@ final class WindowTracker {
     }
 
     private func query(now: CFTimeInterval) -> [WindowSurface] {
+        garlandSurfaces.removeAll(keepingCapacity: true)
         guard screen.width > 0 else { return [] }
         let list = Self.windowList(now: now)
         currentSpaceRead = false
@@ -632,7 +634,9 @@ final class WindowTracker {
             if layer == 0 && !fading && id != 0 { frames[id] = frame }
             let coverOnly = coverOnlyOwners.contains(owner) && !shelf
             let kind: Surfaces = shelf ? .dock : layer < 0 ? .widgets : .windows
-            if collects.contains(kind), roomAbove && onScreen && !fills && !coverOnly && !fading && bounds.width >= 80 && bounds.height >= 40, id != 0,
+            let snowSurface = collects.contains(kind) && roomAbove && !fills
+            let decorationSurface = Preferences.garlands && kind == .windows && !shelf
+            if snowSurface || decorationSurface, onScreen && !coverOnly && !fading && bounds.width >= 80 && bounds.height >= 40, id != 0,
                shelf || !isCard(id, bounds, into: &checked) {
                 // Search bars like Spotlight are capsules: low and wide, with fully rounded ends.
                 let capsule = !shelf && (owner.lowercased().contains("spotlight") || (bounds.height <= 90 && bounds.width >= bounds.height * 3))
@@ -642,7 +646,7 @@ final class WindowTracker {
                 let radius = min(corner, bounds.width / 2, bounds.height / 2)
                 let region = CGRect(x: frame.minX, y: frame.maxY - radius, width: frame.width, height: 40 + radius)
                 if layer > 0 && !shelf { panels[id] = panelsShownAt[id] ?? now }
-                surfaces.append(WindowSurface(
+                let surface = WindowSurface(
                     id: id,
                     frame: frame,
                     blockers: blockers.filter { $0.intersects(region) },
@@ -651,7 +655,9 @@ final class WindowTracker {
                     cornerExponent: capsule ? 2 : 2.5,
                     isDock: shelf,
                     sweeps: false
-                ))
+                )
+                if snowSurface { surfaces.append(surface) }
+                if decorationSurface { garlandSurfaces.append(surface) }
             }
             blockers.append(frame)
         }
@@ -676,6 +682,7 @@ final class WindowTracker {
                 sweeps: false
             ))
         }
+        if exposing { garlandSurfaces.removeAll() }
         return exposing ? [] : surfaces
     }
 

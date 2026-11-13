@@ -63,3 +63,8 @@
 "setup.open" = "Snowhushを開く";
 "setup.failed" = "インストールできませんでした：{error}。";
 "setup.retry" = "再試行";
+
+"snowplow" = "除雪車で雪かき";
+"snowman_hint" = "雪だるま：Ctrl + Alt で雪玉を3つ転がす";
+"garlands" = "クリスマスライト";
+"snowman_hint.mac" = "雪だるま：Control + Option で雪玉を3つ転がす";

@@ -32,6 +32,16 @@ A tiny app that lives in the menu bar on macOS and in the tray on Windows and Li
 - **Hides.** Screenshots and screen sharing show your desktop without it, unless you turn on Show in Screenshots.
 - **Rests.** About 6% of one processor core and 65 MB of memory, and less on battery or in Low Power Mode. It pauses while your screen sleeps, locks or is covered.
 
+## Snowmen, snowplow and Christmas lights (Windows and macOS)
+
+On macOS, hold **Control + Option** to roll snowballs; the menu bar has the same snowplow and Christmas lights switches. The native Swift simulation and Metal renderer handle these effects. The **macOS download** GitHub Actions workflow tests the interactions and Metal shaders, then builds an ad-hoc-signed universal app for Apple Silicon and Intel and uploads a ZIP and DMG artifact. These builds are not notarized.
+
+**Christmas lights** in the Windows tray menu toggles a multicolour garland along each visible window's top edge, including maximized windows. Its cord sags between clips and the bulbs fade in staggered groups. The switch is saved between launches and works independently of snowfall and accumulation.
+
+In Snow mode, hold **Ctrl + Alt** and move the pointer along an existing drift on a window or at the bottom of the screen. The snow rolls into a ball and is removed from the drift. Release the keys to place it. Roll two more balls from fresh snow and release them near the first one: they stack into a snowman with a scarf, carrot nose and top hat. Figures follow the window they sit on. Up to 24 figures can be built per display.
+
+Choose **Clear with snowplow** in the tray menu to send a small snow tractor along the snowy windows, highest first, then along the bottom of the screen. It pushes a heap ahead of its blade and clears snowmen in its path. Falling snow continues, so cleared surfaces can collect fresh snow. **Clear Snow** still clears everything with a gust. Snowmen are cleared when leaving Snow mode.
+
 ## Autumn Leaves
 
 Choose Mode › Autumn Leaves and leaves fall instead of snow. They turn and swing on the way down, settle in heaps you can see are made of leaves, scatter under the cursor and come off a window you shake or drag. Melt Snow and Clear Snow become Wither Leaves and Clear Leaves.

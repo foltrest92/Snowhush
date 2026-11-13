@@ -791,7 +791,8 @@ SpriteOut spriteVertex(SpriteIn s) {
     o.leaf = float4(0.0, 0.0, 0.0, 0.0);
     o.smear = float4(0.0, 0.0, 0.0, 0.0);
     o.rain = float4(0.0, 0.0, 0.0, 0.0);
-    o.petal = 0.0;
+    o.petal = s.petal;
+    o.drop = s.drop;
     if (s.ghost.x > 0.0) {
         o.spin = time + s.ghost.x * 40.0;
         o.ghost.y = (s.ghost.y - s.position.y) / max(s.body.x, 0.001);
@@ -944,9 +945,90 @@ float4 leafSmear(SpriteOut i, float2 p, float edge) {
     return sum;
 }
 
+// Signed winter sprite kinds share the existing instance layout with petals.
+float winterBox(float2 p, float2 center, float2 halfSize, float aa) {
+    return 1.0 - smoothstep(-aa, aa, max(abs(p.x - center.x) - halfSize.x, abs(p.y - center.y) - halfSize.y));
+}
+
+float4 winterAt(SpriteOut i, float2 p) {
+    float aa = max(fwidth(p.x), fwidth(p.y)) * 0.8;
+    float4 c = float4(0, 0, 0, 0);
+    if (i.petal < -1.5 && i.petal > -2.5) {
+        // Amber snow tractor, blue cab glass, rubber wheels, silver front blade.
+        float wheels = max(1.0 - smoothstep(0.071-aa, 0.071+aa, length(p-float2(-0.19,-0.14))),
+                           1.0 - smoothstep(0.064-aa, 0.064+aa, length(p-float2(0.19,-0.14))));
+        c = float4(float3(0.10,0.13,0.18)*wheels, wheels);
+        float hubs = max(1.0-smoothstep(0.029-aa,0.029+aa,length(p-float2(-0.19,-0.14))),
+                         1.0-smoothstep(0.026-aa,0.026+aa,length(p-float2(0.19,-0.14))));
+        c = over(float4(float3(0.65,0.70,0.75)*hubs,hubs),c);
+        float body = winterBox(p,float2(0,-0.035),float2(0.29,0.065),aa);
+        c = over(float4(float3(0.95,0.53,0.10)*body,body),c);
+        float cab = winterBox(p,float2(-0.11,0.095),float2(0.105,0.13),aa);
+        c = over(float4(float3(0.94,0.63,0.15)*cab,cab),c);
+        float glass = winterBox(p,float2(-0.10,0.12),float2(0.073,0.074),aa);
+        c = over(float4(float3(0.30,0.57,0.70)*glass,glass),c);
+        float pipe = winterBox(p,float2(0.14,0.09),float2(0.015,0.07),aa);
+        c = over(float4(float3(0.23,0.27,0.31)*pipe,pipe),c);
+        float blade = winterBox(float2(p.x + p.y*0.28,p.y),float2(0.35,-0.095),float2(0.027,0.105),aa);
+        c = over(float4(float3(0.68,0.78,0.85)*blade,blade),c);
+        float beacon = winterBox(p,float2(-0.12,0.245),float2(0.025,0.018),aa);
+        c = over(float4(float3(1.0,0.52+0.25*sin(time*9.0),0.08)*beacon,beacon),c);
+    } else {
+        float r = max(i.drop.x,0.01);
+        float disk = 1.0-smoothstep(r-aa,r+aa,length(p));
+        float shade = saturate(length(p)/r*0.35 + dot(p/r,float2(0.22,-0.3)));
+        float3 snow = lerp(float3(0.98,0.99,1),float3(0.64,0.75,0.86),shade);
+        c = float4(snow*disk,disk);
+        if (i.drop.y > 0.5) {
+            float buttons = 0.0;
+            for(int k=0;k<3;k++) buttons=max(buttons,1.0-smoothstep(r*0.075-aa,r*0.075+aa,length(p-float2(0,(float(k)-1.0)*r*0.48))));
+            c = over(float4(float3(0.14,0.18,0.23)*buttons,buttons),c);
+            float scarf = winterBox(p,float2(0,r*0.70),float2(r*0.82,r*0.12),aa);
+            float tail = winterBox(p,float2(r*0.45,r*0.35),float2(r*0.12,r*0.35),aa);
+            scarf=max(scarf,tail);
+            c=over(float4(float3(0.68,0.12,0.17)*scarf,scarf),c);
+        }
+        if (i.petal < -2.5) {
+            float eyes=max(1.0-smoothstep(r*0.09-aa,r*0.09+aa,length(p-float2(-r*0.32,r*0.20))),
+                           1.0-smoothstep(r*0.09-aa,r*0.09+aa,length(p-float2(r*0.32,r*0.20))));
+            c=over(float4(float3(0.10,0.14,0.18)*eyes,eyes),c);
+            float nose=1.0-smoothstep(-aa,aa,max(max(-p.x,p.x-r*0.64),abs(p.y+r*0.05)-r*0.13*(1.0-p.x/(r*0.64))));
+            c=over(float4(float3(0.96,0.36,0.06)*nose,nose),c);
+            float hat=max(winterBox(p,float2(0,r*0.86),float2(r*1.12,r*0.11),aa),
+                          winterBox(p,float2(0,r*1.22),float2(r*0.68,r*0.39),aa));
+            c=over(float4(float3(0.12,0.16,0.22)*hat,hat),c);
+            float band=winterBox(p,float2(0,r*0.98),float2(r*0.68,r*0.075),aa);
+            c=over(float4(float3(0.68,0.12,0.17)*band,band),c);
+        }
+    }
+    c.rgb *= lerp(float3(1,1,1),light.rgb,0.35);
+    return c*i.alpha;
+}
+
 float4 spriteFragment(SpriteOut i) : SV_Target {
     // Quad coordinates run down the screen; velocities run up.
     float2 p = float2(i.coord.x - 0.5, 0.5 - i.coord.y);
+    if (i.petal < -3.5) {
+        float aa = max(fwidth(p.x),fwidth(p.y));
+        if (i.petal > -4.5) {
+            float2 axis=i.drop.xy;
+            float t=clamp(dot(p,axis)/max(dot(axis,axis),0.0001),-1.0,1.0);
+            float a=(1.0-smoothstep(0.045-aa,0.045+aa,length(p-axis*t)))*0.90;
+            return float4(float3(0.055,0.10,0.075)*a,a);
+        }
+        // Socket, pear-shaped glass envelope, soft halo and a tiny filament highlight.
+        float socket=winterBox(p,float2(0,0.16),float2(0.045,0.075),aa);
+        float2 q=float2(p.x,p.y+0.015);
+        float bulb=1.0-smoothstep(0.105-aa,0.105+aa,length(q/float2(0.80,1.15)));
+        float halo=exp(-dot(q,q)*29.0)*0.29*i.alpha;
+        float a=halo+bulb*(0.72+0.28*i.alpha)*(1.0-halo);
+        float3 color=i.tint.rgb*(halo+bulb*(0.35+0.65*i.alpha));
+        float glint=(1.0-smoothstep(0.013,0.035,length(p-float2(-0.023,0.018))))*bulb*i.alpha;
+        color=lerp(color,float3(1.0,0.96,0.85),glint*0.9);
+        float4 lit=float4(min(color,float3(1,1,1)),a);
+        return over(float4(float3(0.09,0.14,0.10)*socket,socket),lit);
+    }
+    if (i.petal < 0.0) return winterAt(i,p);
     float2 q = p;
     float side = 1.0;
     float cover = 0.0;

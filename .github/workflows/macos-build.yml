@@ -1,0 +1,37 @@
+name: macOS download
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/macos-winter-decorations]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test native holiday interactions
+        run: python3 scripts/test-macos-holiday.py
+      - name: Validate Metal shaders
+        run: |
+          if ! xcrun -sdk macosx -find metal; then xcodebuild -downloadComponent MetalToolchain; fi
+          swiftc Sources/Snowhush/LeafShapes.swift Sources/Snowhush/Shaders.swift scripts/check-metal.swift -o /tmp/check-metal
+          /tmp/check-metal /tmp/snowhush.metal
+          xcrun -sdk macosx metal -c /tmp/snowhush.metal -o /tmp/snowhush.air
+      - name: Build universal app (Apple Silicon and Intel)
+        run: zsh build.sh
+      - name: Package downloads
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent build/Snowhush.app dist/Snowhush-macOS-universal.zip
+          hdiutil create -volname Snowhush -srcfolder build/Snowhush.app -ov -format UDZO dist/Snowhush-macOS-universal.dmg
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Snowhush-macOS-universal
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14

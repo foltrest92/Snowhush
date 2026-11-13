@@ -24,6 +24,7 @@ pub struct Settings {
     pub ground: bool,
     pub melt: bool,
     pub snow_on_windows: bool,
+    pub garlands: bool,
     pub behind_windows: bool,
     /// The snow stays over full-screen apps instead of fading out of their way.
     pub over_full_screen: bool,
@@ -75,6 +76,7 @@ impl Settings {
             ground: read(w!("settleGround")).map_or(settled, |v| v != 0),
             melt: read(w!("meltSnow")).is_none_or(|v| v != 0),
             snow_on_windows: settled && read(w!("snowOnWindows")).is_none_or(|v| v != 0),
+            garlands: read(w!("garlands")).is_none_or(|v| v != 0),
             behind_windows: read(w!("behindWindows")).is_some_and(|v| v != 0),
             over_full_screen: read(w!("showOverFullScreen")).is_some_and(|v| v != 0),
             behind_taskbar: read(w!("behindTaskbar")).is_some_and(|v| v != 0),
@@ -97,6 +99,7 @@ impl Settings {
         write(w!("settleGround"), self.ground as u32);
         write(w!("meltSnow"), self.melt as u32);
         write(w!("snowOnWindows"), self.snow_on_windows as u32);
+        write(w!("garlands"), self.garlands as u32);
         write(w!("behindWindows"), self.behind_windows as u32);
         write(w!("showOverFullScreen"), self.over_full_screen as u32);
         write(w!("behindTaskbar"), self.behind_taskbar as u32);
