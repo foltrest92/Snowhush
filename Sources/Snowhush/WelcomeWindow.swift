@@ -35,7 +35,11 @@ final class WelcomeController: NSObject {
         window.center()
         self.window = window
 
-        NSApp.activate()
+        if #available(macOS 14, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         window.makeKeyAndOrderFront(nil)
     }
 
