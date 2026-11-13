@@ -712,6 +712,7 @@ final class SnowSimulation {
 
     /// Returns whether anything visible changed.
     func step(dt: Float, cursor point: SIMD2<Float>) -> Bool {
+        let hadHolidaySprites = holiday.count > 0
         clock += Double(dt)
         let wasMoving = !flakes.isEmpty || !grains.isEmpty || !motes.isEmpty || !ghosts.isEmpty || !fallingSigns.isEmpty || !snowballs.isEmpty
             || !splashes.isEmpty || !glassDrops.isEmpty || wet
@@ -766,7 +767,7 @@ final class SnowSimulation {
         windowsChanged = false
         borrowedChanged = false
         pumpkinsMoved = false
-        return changed || holiday.count > 0
+        return changed || holiday.count > 0 || hadHolidaySprites
     }
 
     func writeSprites(into buffer: UnsafeMutablePointer<Sprite>, capacity: Int) -> Int {
